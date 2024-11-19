@@ -17,18 +17,21 @@ ModelExporter::~ModelExporter() {
 }
 
 void ModelExporter::initialize() {
-    initializePaths();
-    initializeNetwork();
-    
-    // 启动外部程序
     try {
+        initializePaths();
+        initializeNetwork();
+        
+        // 启动外部程序
         STARTUPINFOA si = {sizeof(si)};
         PROCESS_INFORMATION pi;
         CreateProcessA(m_appPath.c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
+        
+        m_isInitialized = true;
     } catch (const std::exception& e) {
-        std::cerr << "Failed to start external application: " << e.what() << std::endl;
+        std::cerr << "Failed to initialize: " << e.what() << std::endl;
+        throw;
     }
 }
 

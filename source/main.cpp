@@ -2,11 +2,53 @@
 #include "c4d_plugin.h"
 #include "c4d_resource.h"
 #include "ModelExporter.h"
+#include <iostream>
 
-#define ID_VISION3D_PLUGIN 1234567  // 插件唯一ID
+// 插件ID
+#define ID_VISION3D_PLUGIN 1234567
 
-// 全局ModelExporter实例
-static std::unique_ptr<ModelExporter> g_exporter;
+class Vision3DPlugin : public CommandData {
+private:
+    static Vision3DPlugin* instance;
+    std::unique_ptr<ModelExporter> exporter;
+    
+public:
+    Vision3DPlugin() {
+        exporter = std::make_unique<ModelExporter>();
+    }
+    
+    static Vision3DPlugin* GetInstance() {
+        if (!instance) {
+            instance = new Vision3DPlugin();
+        }
+        return instance;
+    }
+    
+    virtual Bool Execute(BaseDocument* doc) override {
+        try {
+            if (!exporter->IsInitialized()) {
+                exporter->initialize();
+                exporter->start();
+            }
+            return true;
+        } catch (const std::exception& e) {
+            GePrint("Error: "_s + String(e.what()));
+            return false;
+        }
+    }
+    
+    void Cleanup() {
+        if (exporter) {
+            exporter->stop();
+        }
+    }
+    
+    ~Vision3DPlugin() {
+        Cleanup();
+    }
+};
+
+Vision3DPlugin* Vision3DPlugin::instance = nullptr;
 
 Bool RegisterVision3DPlugin() {
     return RegisterCommandPlugin(
@@ -15,14 +57,7 @@ Bool RegisterVision3DPlugin() {
         0,
         nullptr,
         String("Lenovo 3D Vision Plugin"_s),
-        NewObjClear<CallCommand>([](BaseDocument* doc) {
-            if (!g_exporter) {
-                g_exporter = std::make_unique<ModelExporter>();
-                g_exporter->initialize();
-                g_exporter->start();
-            }
-            return true;
-        })
+        Vision3DPlugin::GetInstance()
     );
 }
 
@@ -33,10 +68,9 @@ Bool PluginStart() {
 }
 
 void PluginEnd() {
-    // 清理资源
-    if (g_exporter) {
-        g_exporter->stop();
-        g_exporter.reset();
+    if (Vision3DPlugin::GetInstance()) {
+        Vision3DPlugin::GetInstance()->Cleanup();
+        delete Vision3DPlugin::GetInstance();
     }
 }
 

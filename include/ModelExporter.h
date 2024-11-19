@@ -20,6 +20,7 @@ public:
     void initialize();
     void start();
     void stop();
+    bool IsInitialized() const { return m_isInitialized; }
 
 private:
     // 状态变量
@@ -28,6 +29,7 @@ private:
     std::atomic<bool> m_isConnected{false};
     std::atomic<bool> m_isRunning{false};
     std::atomic<int> m_status{0};
+    bool m_isInitialized{false};
     
     // 网络相关
     SOCKET m_clientSocket;
